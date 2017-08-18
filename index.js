@@ -1,6 +1,8 @@
-document.addEventListener("DOMContentLoaded", function(event) { 
-	const token = "2fc3cfd499ceeb5c96e35834071ef017d839bcf07bc93959424338710956a334"
 
+document.addEventListener("DOMContentLoaded", function(event) { 
+	const token = "483226b79ae45332984206fa772f1801590a92637d850c502f867865dc4ce4f9"
+	let players = []
+	var currentSession = new Session()
 	function loadGame() {
 		fetch(`https://opentdb.com/api_category.php`).then(res => res.json()).then(res => getCategories(res))
 	}
@@ -9,45 +11,101 @@ document.addEventListener("DOMContentLoaded", function(event) {
 		let categoriesHtml = res.trivia_categories.map( category => {
 			return `
 			<option value="${category.id}">${category.name}</option>
-			`		
+			`	
 		}).join('')
-		document.getElementById('categories-select').innerHTML = categoriesHtml
+
+		let categoryForm = 
+		`
+		<form id="category-form">
+			<select id="categories-select">
+				${categoriesHtml}
+			</select>
+			<input type="submit" value="Select category">
+		</form
+		`
+		
+		$('#game-screen').html(categoryForm)
 	}
 		
-	document.getElementById('choose-category').addEventListener('click', function(event) {
-		event.preventDefault();
-		var categoryId = document.getElementById('categories-select').value
-		fetch(`https://opentdb.com/api.php?amount=10&category=${categoryId}&type=multiple&token=${token}`)
-		.then(res => res.json())
-		.then(res => populateQuestions(res))
-	})
 
 	function populateQuestions(res) {
-		var questions = res.results.map(question => {
-			var q = new Question(question.question, question.correct_answer, question.incorrect_answers, question.category)
-			return q.display()
-		}).join('')
-		document.getElementById('questions-container').innerHTML = questions
+		var currentGame = new Game (players)
+		res.results.forEach(question => {
+			currentGame.addQuestion(new Question(question.question, question.correct_answer, question.incorrect_answers, question.category))
+		})
+
+		play(currentGame)
+	}
+
+	function play(currentGame){
+
+		var currentPlayerDisplay = `<h3>${currentGame.currentPlayer().name}</h3>`
+		$('#game-screen').html(currentPlayerDisplay + currentGame.getQuestion().display())
+
+
+		$('#answer-question').on("click", "button", function(event){
+			event.preventDefault()
+			currentGame.evaluateAnswer(this)
+
+			if (currentGame.checkOver()){
+				$('#game-screen').html(currentGame.evaluateWinner())
+				$('#continue-game').on("click", "button", function(event){
+
+					if (this.id === "continue"){
+						loadGame()
+					}
+					else {
+						players = []
+						currentSession = new Session()
+					}
+				})
+			} else {
+				play(currentGame)
+			}
+		})
+
+
 	}
 
 
-loadGame();  
+
+
+	
+
+	$('#game-screen').on("submit", "form", function(event){
+		event.preventDefault()
+
+		switch (this.id){
+			case "num-players-form": 
+				var numPlayers = $('#players').val();
+
+				currentSession.getNumPlayers(numPlayers);
+				break;
+			case "get-user-names":
+
+				for (let i = 1; i<=currentSession.numPlayers; i++){
+					players.push(new Player ($(`#player-${i}`).val(), i))
+				}
+				loadGame()
+				break;
+			case 'category-form':
+				var categoryId = $('#categories-select').val()
+				fetch(`https://opentdb.com/api.php?amount=10&category=${categoryId}&type=multiple&token=${token}`)
+				.then(res => res.json())
+				.then(res => populateQuestions(res))
+				break;
+
+
+		}
+
+	})
+
+
+
+
+ 
 
 });
-
-function evaluateAnswer(el) {
-	let answer = el.dataset.answer
-	let questionId = el.dataset.question
-	let question = Question.all().find( q => q.id == questionId )
-	if (question.answer == answer) {
-		alert("Correct!")
-	}
-	else {
-		alert("Incorrect!")
-	}
-}
-
-
 
 
 

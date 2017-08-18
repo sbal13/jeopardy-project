@@ -14,8 +14,10 @@ var Question = (function classCreator() {
 		display() {
 			var question = `
 			<div>
-				<h4>${this.question}</h4>
-				${this.displayAnswers()}
+				<form id="answer-question">
+					<h4>${this.question}</h4>
+					${this.displayAnswers()}
+				</form>
 			</div>
 			`
 			return question
@@ -28,7 +30,7 @@ var Question = (function classCreator() {
 			var i = 0
 			while (allAnswers.length > 0) {
 				var answer = allAnswers.splice(Math.floor(Math.random()*allAnswers.length), 1)[0];
-				arrayButtons.push(`<button type="submit" id="answer-${++i}" data-answer="${answer}" data-question="${this.id}" onclick="evaluateAnswer(this)">${answer}</button>`)
+				arrayButtons.push(`<button type="submit" id="answer-${++i}" data-answer="${answer}" data-question="${this.id}">${answer}</button>`)
 			}
 			return arrayButtons.join('');
 		}
